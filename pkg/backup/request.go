@@ -39,6 +39,7 @@ type itemKey struct {
 
 // Request is a request for a backup, with all references to other objects
 // materialized (e.g. backup/snapshot locations, includes/excludes, etc.)
+// FIXME
 type Request struct {
 	*velerov1api.Backup
 

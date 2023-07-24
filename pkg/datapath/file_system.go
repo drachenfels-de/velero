@@ -62,7 +62,8 @@ func newFileSystemBR(jobName string, requestorType string, client client.Client,
 }
 
 func (fs *fileSystemBR) Init(ctx context.Context, bslName string, sourceNamespace string, uploaderType string, repositoryType string,
-	repoIdentifier string, repositoryEnsurer *repository.Ensurer, credentialGetter *credentials.CredentialGetter) error {
+	repoIdentifier string, repositoryEnsurer *repository.Ensurer, credentialGetter *credentials.CredentialGetter,
+) error {
 	var err error
 	defer func() {
 		if err != nil {
@@ -92,6 +93,7 @@ func (fs *fileSystemBR) Init(ctx context.Context, bslName string, sourceNamespac
 		return errors.Wrapf(err, "error to boost backup repository connection %s-%s-%s", bslName, sourceNamespace, repositoryType)
 	}
 
+	// # FIXME
 	fs.uploaderProv, err = provider.NewUploaderProvider(ctx, fs.client, uploaderType, fs.requestorType, repoIdentifier,
 		fs.backupLocation, fs.backupRepo, credentialGetter, repokey.RepoKeySelector(), fs.log)
 	if err != nil {
@@ -135,6 +137,7 @@ func (fs *fileSystemBR) StartBackup(source AccessPoint, realSource string, paren
 	}
 
 	go func() {
+		// FIXME
 		snapshotID, emptySnapshot, err := fs.uploaderProv.RunBackup(fs.ctx, source.ByPath, realSource, tags, forceFull, parentSnapshot, fs)
 
 		if err == provider.ErrorCanceled {

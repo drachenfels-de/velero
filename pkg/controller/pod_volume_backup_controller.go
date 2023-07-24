@@ -48,7 +48,8 @@ const pVBRRequestor string = "pod-volume-backup-restore"
 
 // NewPodVolumeBackupReconciler creates the PodVolumeBackupReconciler instance
 func NewPodVolumeBackupReconciler(client client.Client, ensurer *repository.Ensurer, credentialGetter *credentials.CredentialGetter,
-	nodeName string, scheme *runtime.Scheme, metrics *metrics.ServerMetrics, logger logrus.FieldLogger) *PodVolumeBackupReconciler {
+	nodeName string, scheme *runtime.Scheme, metrics *metrics.ServerMetrics, logger logrus.FieldLogger,
+) *PodVolumeBackupReconciler {
 	return &PodVolumeBackupReconciler{
 		Client:            client,
 		logger:            logger.WithField("controller", "PodVolumeBackup"),
@@ -178,6 +179,8 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	// FIXME
+	// can we get the policy here ?
 	if err := fsBackup.StartBackup(path, "", parentSnapshotID, false, pvb.Spec.Tags); err != nil {
 		return r.errorOut(ctx, &pvb, err, "error starting data path backup", log)
 	}

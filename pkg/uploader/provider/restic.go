@@ -35,12 +35,15 @@ import (
 
 // resticBackupCMDFunc and resticRestoreCMDFunc are mainly used to make testing more convenient
 var resticBackupCMDFunc = restic.BackupCommand
-var resticBackupFunc = restic.RunBackup
-var resticGetSnapshotFunc = restic.GetSnapshotCommand
-var resticGetSnapshotIDFunc = restic.GetSnapshotID
-var resticRestoreCMDFunc = restic.RestoreCommand
-var resticTempCACertFileFunc = restic.TempCACertFile
-var resticCmdEnvFunc = restic.CmdEnv
+
+var (
+	resticBackupFunc         = restic.RunBackup
+	resticGetSnapshotFunc    = restic.GetSnapshotCommand
+	resticGetSnapshotIDFunc  = restic.GetSnapshotID
+	resticRestoreCMDFunc     = restic.RestoreCommand
+	resticTempCACertFileFunc = restic.TempCACertFile
+	resticCmdEnvFunc         = restic.CmdEnv
+)
 
 type resticProvider struct {
 	repoIdentifier  string
@@ -52,6 +55,7 @@ type resticProvider struct {
 	log             logrus.FieldLogger
 }
 
+// # FIXME append flags to extra flags
 func NewResticUploaderProvider(
 	repoIdentifier string,
 	bsl *velerov1api.BackupStorageLocation,
@@ -121,7 +125,8 @@ func (rp *resticProvider) RunBackup(
 	tags map[string]string,
 	forceFull bool,
 	parentSnapshot string,
-	updater uploader.ProgressUpdater) (string, bool, error) {
+	updater uploader.ProgressUpdater,
+) (string, bool, error) {
 	if updater == nil {
 		return "", false, errors.New("Need to initial backup progress updater first")
 	}
@@ -150,6 +155,13 @@ func (rp *resticProvider) RunBackup(
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
 	}
 
+	// excludes, ok := tags["resticExcludes"]
+	excludes, _ := ctx.Value("resticExcludes").([]string)
+	if len(excludes) > 0 {
+		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, excludes...)
+	}
+
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
 	if err != nil {
 		if strings.Contains(stderrBuf, "snapshot is empty") {
@@ -169,6 +181,7 @@ func (rp *resticProvider) RunBackup(
 	if err != nil {
 		return "", false, errors.WithStack(fmt.Errorf("error getting snapshot id with error: %v", err))
 	}
+	// FIXME
 	log.Infof("Run command=%s, stdout=%s, stderr=%s", backupCmd.String(), summary, stderrBuf)
 	return snapshotID, false, nil
 }
@@ -179,7 +192,8 @@ func (rp *resticProvider) RunRestore(
 	ctx context.Context,
 	snapshotID string,
 	volumePath string,
-	updater uploader.ProgressUpdater) error {
+	updater uploader.ProgressUpdater,
+) error {
 	if updater == nil {
 		return errors.New("Need to initial backup progress updater first")
 	}
