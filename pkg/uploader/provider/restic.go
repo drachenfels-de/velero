@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/restic"
 	"github.com/vmware-tanzu/velero/pkg/uploader"
@@ -35,12 +37,15 @@ import (
 
 // resticBackupCMDFunc and resticRestoreCMDFunc are mainly used to make testing more convenient
 var resticBackupCMDFunc = restic.BackupCommand
-var resticBackupFunc = restic.RunBackup
-var resticGetSnapshotFunc = restic.GetSnapshotCommand
-var resticGetSnapshotIDFunc = restic.GetSnapshotID
-var resticRestoreCMDFunc = restic.RestoreCommand
-var resticTempCACertFileFunc = restic.TempCACertFile
-var resticCmdEnvFunc = restic.CmdEnv
+
+var (
+	resticBackupFunc         = restic.RunBackup
+	resticGetSnapshotFunc    = restic.GetSnapshotCommand
+	resticGetSnapshotIDFunc  = restic.GetSnapshotID
+	resticRestoreCMDFunc     = restic.RestoreCommand
+	resticTempCACertFileFunc = restic.TempCACertFile
+	resticCmdEnvFunc         = restic.CmdEnv
+)
 
 type resticProvider struct {
 	repoIdentifier  string
@@ -52,6 +57,7 @@ type resticProvider struct {
 	log             logrus.FieldLogger
 }
 
+// # FIXME append flags to extra flags
 func NewResticUploaderProvider(
 	repoIdentifier string,
 	bsl *velerov1api.BackupStorageLocation,
@@ -112,6 +118,7 @@ func (rp *resticProvider) Close(ctx context.Context) error {
 	return nil
 }
 
+// FIXME can use the ctx or tags  to pass additional data
 // RunBackup runs a `backup` command and watches the output to provide
 // progress updates to the caller and return snapshotID, isEmptySnapshot, error
 func (rp *resticProvider) RunBackup(
@@ -121,7 +128,8 @@ func (rp *resticProvider) RunBackup(
 	tags map[string]string,
 	forceFull bool,
 	parentSnapshot string,
-	updater uploader.ProgressUpdater) (string, bool, error) {
+	updater uploader.ProgressUpdater,
+) (string, bool, error) {
 	if updater == nil {
 		return "", false, errors.New("Need to initial backup progress updater first")
 	}
@@ -150,6 +158,25 @@ func (rp *resticProvider) RunBackup(
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
 	}
 
+	// FIXME use pvb.Annotations instead ?
+	log.Printf(">>>>> resticConfig: %s", ctx.Value("resticConfig"))
+	resticConfig, _ := ctx.Value("resticConfig").(*resourcepolicies.ResticConfig)
+	log.Printf("-----> resticConfig: %#v\n", resticConfig)
+	if resticConfig != nil {
+		log.Infof("using restic config: %#v", resticConfig)
+		// see also https://restic.readthedocs.io/en/latest/040_backup.html?highlight=--exclude#excluding-files
+		for _, exclude := range resticConfig.Excludes {
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+			if strings.HasPrefix(exclude, "/") {
+				// if the exclude is anchored to / we must replace it with working directory of the backup command
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, filepath.Join(backupCmd.Dir, exclude))
+			} else {
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
+			}
+		}
+	}
+
+	log.Printf("---> dir %s", backupCmd.Dir)
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
 	if err != nil {
 		if strings.Contains(stderrBuf, "snapshot is empty") {
@@ -179,7 +206,8 @@ func (rp *resticProvider) RunRestore(
 	ctx context.Context,
 	snapshotID string,
 	volumePath string,
-	updater uploader.ProgressUpdater) error {
+	updater uploader.ProgressUpdater,
+) error {
 	if updater == nil {
 		return errors.New("Need to initial backup progress updater first")
 	}

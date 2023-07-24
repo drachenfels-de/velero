@@ -18,6 +18,7 @@ package controller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	veleroapishared "github.com/vmware-tanzu/velero/pkg/apis/velero/shared"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/datapath"
@@ -48,7 +50,8 @@ const pVBRRequestor string = "pod-volume-backup-restore"
 
 // NewPodVolumeBackupReconciler creates the PodVolumeBackupReconciler instance
 func NewPodVolumeBackupReconciler(client client.Client, ensurer *repository.Ensurer, credentialGetter *credentials.CredentialGetter,
-	nodeName string, scheme *runtime.Scheme, metrics *metrics.ServerMetrics, logger logrus.FieldLogger) *PodVolumeBackupReconciler {
+	nodeName string, scheme *runtime.Scheme, metrics *metrics.ServerMetrics, logger logrus.FieldLogger,
+) *PodVolumeBackupReconciler {
 	return &PodVolumeBackupReconciler{
 		Client:            client,
 		logger:            logger.WithField("controller", "PodVolumeBackup"),
@@ -158,6 +161,19 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	log.WithField("path", path.ByPath).Debugf("Found host path")
 
+	resticConfigJSON, _ := pvb.Annotations["resticConfig"]
+	log.Printf(">>> resticConfig %#s\n", resticConfigJSON)
+	var resticConfig resourcepolicies.ResticConfig
+	if len(resticConfigJSON) > 0 {
+		err := json.Unmarshal([]byte(resticConfigJSON), &resticConfig)
+		if err != nil {
+			log.Errorf("failed to unmarshal restic config: %s", err)
+		} else {
+			ctx = context.WithValue(ctx, "resticConfig", &resticConfig)
+			log.WithField("resticConfig", resticConfig).Printf("Using restic config")
+		}
+	}
+
 	if err := fsBackup.Init(ctx, pvb.Spec.BackupStorageLocation, pvb.Spec.Pod.Namespace, pvb.Spec.UploaderType,
 		podvolume.GetPvbRepositoryType(&pvb), pvb.Spec.RepoIdentifier, r.repositoryEnsurer, r.credentialGetter); err != nil {
 		return r.errorOut(ctx, &pvb, err, "error to initialize data path", log)
@@ -178,6 +194,8 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
+	// FIXME
+	// can we get the policy here ?
 	if err := fsBackup.StartBackup(path, "", parentSnapshotID, false, pvb.Spec.Tags); err != nil {
 		return r.errorOut(ctx, &pvb, err, "error starting data path backup", log)
 	}
