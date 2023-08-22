@@ -180,10 +180,7 @@ shell: build-dirs build-env
 		/bin/sh $(CMD)
 
 container:
-ifneq ($(BUILDX_ENABLED), true)
-	$(error $(BUILDX_ERROR))
-endif
-	@docker buildx build --pull \
+	buildah bud --pull \
 	--output=type=$(BUILDX_OUTPUT_TYPE) \
 	--platform $(BUILDX_PLATFORMS) \
 	$(addprefix -t , $(IMAGE_TAGS)) \
@@ -198,12 +195,6 @@ endif
 	--build-arg=RESTIC_VERSION=$(RESTIC_VERSION) \
 	-f $(VELERO_DOCKERFILE) .
 	@echo "container: $(IMAGE):$(VERSION)"
-ifeq ($(BUILDX_OUTPUT_TYPE)_$(REGISTRY), registry_velero)
-	docker pull $(IMAGE):$(VERSION)
-	rm -f $(BIN)-$(VERSION).tar
-	docker save $(IMAGE):$(VERSION) -o $(BIN)-$(VERSION).tar
-	gzip -f $(BIN)-$(VERSION).tar
-endif
 
 SKIP_TESTS ?=
 test: build-dirs
