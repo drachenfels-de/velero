@@ -163,9 +163,10 @@ func (rp *resticProvider) RunBackup(
 	log.Printf("-----> resticConfig: %#v\n", resticConfig)
 	if resticConfig != nil {
 		log.Infof("using restic config: %#v", resticConfig)
-		if len(resticConfig.Excludes) > 0 {
+		// see also https://restic.readthedocs.io/en/latest/040_backup.html?highlight=--exclude#excluding-files
+		for _, exclude := range resticConfig.Excludes {
 			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
-			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.Excludes...)
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
 		}
 	}
 
