@@ -18,6 +18,7 @@ package podvolume
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -283,14 +284,19 @@ func (b *backupper) BackupPodVolumes(backup *velerov1api.Backup, pod *corev1api.
 			}
 		}
 
+		volumeBackup := newPodVolumeBackup(backup, pod, volume, repo.Spec.ResticIdentifier, b.uploaderType, pvc)
+
 		// FIXME handle error
 		// FIXME pass pv to GetResticExcludes
-		excludes, _ := resPolicies.GetResticExcludes(nil)
-		log.Info("restic excludes", excludes)
+		resticConfig, _ := resPolicies.GetResticConfig(nil)
+		log.Info("restic config", resticConfig)
 
-		// FIXME
-		volumeBackup := newPodVolumeBackup(backup, pod, volume, repo.Spec.ResticIdentifier, b.uploaderType, pvc)
-		// set excludes here
+		resticConfigJSON, err := json.Marshal(resticConfig)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		volumeBackup.Spec.Tags["restic-config"] = string(resticConfigJSON)
 
 		if _, err = b.veleroClient.VeleroV1().PodVolumeBackups(volumeBackup.Namespace).Create(context.TODO(), volumeBackup, metav1.CreateOptions{}); err != nil {
 			errs = append(errs, err)
@@ -402,6 +408,8 @@ func newPodVolumeBackup(backup *velerov1api.Backup, pod *corev1api.Pod, volume c
 
 		// this tag is not used by velero, but useful for debugging.
 		pvb.Spec.Tags["pvc-uid"] = string(pvc.UID)
+		// TODO set excludes here ?
+		// pvb.Spec.Tags["restic-excludes"] =
 	}
 
 	return pvb

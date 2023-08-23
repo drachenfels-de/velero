@@ -14,7 +14,6 @@ const (
 	// currently only support configmap type of resource config
 	ConfigmapRefType string           = "configmap"
 	Skip             VolumeActionType = "skip"
-	Restic           VolumeActionType = "restic"
 )
 
 // Action defined as one action for a specific way of backup
@@ -41,10 +40,14 @@ type resourcePolicies struct {
 	// OtherResourcePolicies []OtherResourcePolicy
 }
 
+type ResticConfig struct {
+	Excludes []string `yaml:"excludes"`
+}
+
 // volumePolicy defined policy to conditions to match Volumes and related action to handle matched Volumes
 // FIXME inherit from volume policy ?
 type resticPolicy struct {
-	Excludes []string `yaml:"excludes"`
+	ResticConfig
 }
 
 // FIXME
@@ -139,10 +142,10 @@ func (p *Policies) Validate() error {
 }
 
 // Return first restic excludes defined in policy
-func (p *Policies) GetResticExcludes(res interface{}) ([]string, error) {
+func (p *Policies) GetResticConfig(res interface{}) (*ResticConfig, error) {
 	for _, policy := range p.resticPolicies {
 		// FIXME check volume res as condition to exclude paths by volume name
-		return policy.Excludes, nil
+		return &policy.ResticConfig, nil
 	}
 	return nil, nil
 }

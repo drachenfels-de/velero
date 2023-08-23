@@ -18,6 +18,7 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -27,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/restic"
 	"github.com/vmware-tanzu/velero/pkg/uploader"
@@ -116,6 +118,7 @@ func (rp *resticProvider) Close(ctx context.Context) error {
 	return nil
 }
 
+// FIXME can use the ctx or tags  to pass additional data
 // RunBackup runs a `backup` command and watches the output to provide
 // progress updates to the caller and return snapshotID, isEmptySnapshot, error
 func (rp *resticProvider) RunBackup(
@@ -155,11 +158,18 @@ func (rp *resticProvider) RunBackup(
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
 	}
 
-	// excludes, ok := tags["resticExcludes"]
-	excludes, _ := ctx.Value("resticExcludes").([]string)
-	if len(excludes) > 0 {
-		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
-		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, excludes...)
+	resticConfigJSON, _ := tags["restic-config"]
+	var resticConfig *resourcepolicies.ResticConfig
+	if len(resticConfigJSON) > 0 {
+		err := json.Unmarshal([]byte(resticConfigJSON), resticConfig)
+		if err != nil {
+			log.Errorf("failed to unmarshal restic config: %s", err)
+		} else {
+			if len(resticConfig.Excludes) > 0 {
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.Excludes...)
+			}
+		}
 	}
 
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)

@@ -137,7 +137,7 @@ func (fs *fileSystemBR) StartBackup(source AccessPoint, realSource string, paren
 	}
 
 	go func() {
-		// FIXME
+		// FIXME can use the ctx for passing the provider specific config
 		snapshotID, emptySnapshot, err := fs.uploaderProv.RunBackup(fs.ctx, source.ByPath, realSource, tags, forceFull, parentSnapshot, fs)
 
 		if err == provider.ErrorCanceled {
