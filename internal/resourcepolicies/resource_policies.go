@@ -35,13 +35,26 @@ type volumePolicy struct {
 type resourcePolicies struct {
 	Version        string         `yaml:"version"`
 	VolumePolicies []volumePolicy `yaml:"volumePolicies"`
+	ResticPolicies []resticPolicy `yaml:"resticPolicies"`
 	// we may support other resource policies in the future, and they could be added separately
 	// OtherResourcePolicies []OtherResourcePolicy
 }
 
+type ResticConfig struct {
+	Excludes []string `yaml:"excludes"`
+}
+
+// volumePolicy defined policy to conditions to match Volumes and related action to handle matched Volumes
+// FIXME inherit from volume policy ?
+type resticPolicy struct {
+	ResticConfig ResticConfig `yaml:"resticConfig"`
+}
+
+// FIXME
 type Policies struct {
 	version        string
 	volumePolicies []volPolicy
+	resticPolicies []resticPolicy
 	// OtherPolicies
 }
 
@@ -74,6 +87,7 @@ func (p *Policies) buildPolicy(resPolicies *resourcePolicies) error {
 	}
 
 	// Other resource policies
+	p.resticPolicies = resPolicies.ResticPolicies
 
 	p.version = resPolicies.Version
 	return nil
@@ -125,6 +139,15 @@ func (p *Policies) Validate() error {
 		}
 	}
 	return nil
+}
+
+// Return first restic excludes defined in policy
+func (p *Policies) GetResticConfig(res interface{}) (*ResticConfig, error) {
+	for _, policy := range p.resticPolicies {
+		// FIXME check volume res as condition to exclude paths by volume name
+		return &policy.ResticConfig, nil
+	}
+	return nil, nil
 }
 
 func GetResourcePoliciesFromConfig(cm *v1.ConfigMap) (*Policies, error) {

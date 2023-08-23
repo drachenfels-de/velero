@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/restic"
 	"github.com/vmware-tanzu/velero/pkg/uploader"
@@ -155,6 +157,25 @@ func (rp *resticProvider) RunBackup(
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
 	}
 
+	// FIXME use pvb.Annotations instead ?
+	log.Printf(">>>>> resticConfig: %s", ctx.Value("resticConfig"))
+	resticConfig, _ := ctx.Value("resticConfig").(*resourcepolicies.ResticConfig)
+	log.Printf("-----> resticConfig: %#v\n", resticConfig)
+	if resticConfig != nil {
+		log.Infof("using restic config: %#v", resticConfig)
+		// see also https://restic.readthedocs.io/en/latest/040_backup.html?highlight=--exclude#excluding-files
+		for _, exclude := range resticConfig.Excludes {
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+			if strings.HasPrefix(exclude, "/") {
+				// if the exclude is anchored to / we must replace it with working directory of the backup command
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, filepath.Join(backupCmd.Dir, exclude))
+			} else {
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
+			}
+		}
+	}
+
+	log.Printf("---> dir %s", backupCmd.Dir)
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
 	if err != nil {
 		if strings.Contains(stderrBuf, "snapshot is empty") {
