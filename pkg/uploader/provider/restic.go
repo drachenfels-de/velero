@@ -158,7 +158,9 @@ func (rp *resticProvider) RunBackup(
 	}
 
 	// FIXME use pvb.Annotations instead ?
+	log.Printf(">>>>> resticConfig: %s", ctx.Value("resticConfig"))
 	resticConfig, _ := ctx.Value("resticConfig").(*resourcepolicies.ResticConfig)
+	log.Printf("-----> resticConfig: %#v\n", resticConfig)
 	if resticConfig != nil {
 		log.Infof("using restic config: %#v", resticConfig)
 		if len(resticConfig.Excludes) > 0 {
