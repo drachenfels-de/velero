@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -eu
 
 export BUILDX_PLATFORMS=linux/amd64
 make container
