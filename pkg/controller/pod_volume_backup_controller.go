@@ -162,6 +162,7 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	log.WithField("path", path.ByPath).Debugf("Found host path")
 
 	resticConfigJSON, _ := pvb.Annotations["resticConfig"]
+	log.WithField("resticConfigJSON", resticConfigJSON).Printf(">>>>> resticConfig")
 	var resticConfig resourcepolicies.ResticConfig
 	if len(resticConfigJSON) > 0 {
 		err := json.Unmarshal([]byte(resticConfigJSON), &resticConfig)
