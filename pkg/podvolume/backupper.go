@@ -297,6 +297,9 @@ func (b *backupper) BackupPodVolumes(backup *velerov1api.Backup, pod *corev1api.
 			errs = append(errs, err)
 			continue
 		}
+		if volumeBackup.Annotations == nil {
+			volumeBackup.Annotations = make(map[string]string, 10)
+		}
 		volumeBackup.Annotations["resticConfig"] = string(resticConfigJSON)
 
 		if _, err = b.veleroClient.VeleroV1().PodVolumeBackups(volumeBackup.Namespace).Create(context.TODO(), volumeBackup, metav1.CreateOptions{}); err != nil {
