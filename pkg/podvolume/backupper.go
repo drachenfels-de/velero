@@ -293,6 +293,7 @@ func (b *backupper) BackupPodVolumes(backup *velerov1api.Backup, pod *corev1api.
 
 		resticConfigJSON, err := json.Marshal(resticConfig)
 		if err != nil {
+			log.Errorf(">> foo Failed to marshal resticConfig %#v: %s", resticConfig, err)
 			errs = append(errs, err)
 			continue
 		}
