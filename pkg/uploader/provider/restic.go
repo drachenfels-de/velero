@@ -165,6 +165,7 @@ func (rp *resticProvider) RunBackup(
 		if err != nil {
 			log.Errorf("failed to unmarshal restic config: %s", err)
 		} else {
+			log.Infof("using restic config: %#v", resticConfig)
 			if len(resticConfig.Excludes) > 0 {
 				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
 				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.Excludes...)
