@@ -47,7 +47,7 @@ type ResticConfig struct {
 // volumePolicy defined policy to conditions to match Volumes and related action to handle matched Volumes
 // FIXME inherit from volume policy ?
 type resticPolicy struct {
-	ResticConfig
+	ResticConfig ResticConfig `yaml:"resticConfig"`
 }
 
 // FIXME
