@@ -170,6 +170,7 @@ func (rp *resticProvider) RunBackup(
 		}
 	}
 
+	log.Printf("---> dir %s", backupCmd.Dir)
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
 	if err != nil {
 		if strings.Contains(stderrBuf, "snapshot is empty") {
