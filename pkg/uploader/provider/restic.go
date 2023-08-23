@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -166,7 +167,12 @@ func (rp *resticProvider) RunBackup(
 		// see also https://restic.readthedocs.io/en/latest/040_backup.html?highlight=--exclude#excluding-files
 		for _, exclude := range resticConfig.Excludes {
 			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
-			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
+			if strings.HasPrefix(exclude, "/") {
+				// if the exclude is anchored to / we must replace it with working directory of the backup command
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, filepath.Join(backupCmd.Dir, exclude))
+			} else {
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
+			}
 		}
 	}
 
