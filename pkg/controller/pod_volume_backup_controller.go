@@ -18,7 +18,7 @@ package controller
 
 import (
 	"context"
-	_ "encoding/json"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
-	_ "github.com/vmware-tanzu/velero/internal/resourcepolicies"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	veleroapishared "github.com/vmware-tanzu/velero/pkg/apis/velero/shared"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/datapath"
@@ -163,18 +163,16 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	resticConfigJSON, _ := pvb.Annotations["resticConfig"]
 	log.Printf(">>> resticConfig %#s\n", resticConfigJSON)
-	/*
-		var resticConfig resourcepolicies.ResticConfig
-		if len(resticConfigJSON) > 0 {
-			err := json.Unmarshal([]byte(resticConfigJSON), &resticConfig)
-			if err != nil {
-				log.Errorf("failed to unmarshal restic config: %s", err)
-			} else {
-				ctx = context.WithValue(ctx, "resticConfig", resticConfig)
-				log.WithField("resticConfig", resticConfig).Debugf("Using restic config")
-			}
+	var resticConfig resourcepolicies.ResticConfig
+	if len(resticConfigJSON) > 0 {
+		err := json.Unmarshal([]byte(resticConfigJSON), &resticConfig)
+		if err != nil {
+			log.Errorf("failed to unmarshal restic config: %s", err)
+		} else {
+			ctx = context.WithValue(ctx, "resticConfig", resticConfig)
+			log.WithField("resticConfig", resticConfig).Debugf("Using restic config")
 		}
-	*/
+	}
 
 	if err := fsBackup.Init(ctx, pvb.Spec.BackupStorageLocation, pvb.Spec.Pod.Namespace, pvb.Spec.UploaderType,
 		podvolume.GetPvbRepositoryType(&pvb), pvb.Spec.RepoIdentifier, r.repositoryEnsurer, r.credentialGetter); err != nil {
