@@ -169,7 +169,7 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		if err != nil {
 			log.Errorf("failed to unmarshal restic config: %s", err)
 		} else {
-			ctx = context.WithValue(ctx, "resticConfig", resticConfig)
+			ctx = context.WithValue(ctx, "resticConfig", &resticConfig)
 			log.WithField("resticConfig", resticConfig).Printf("Using restic config")
 		}
 	}
