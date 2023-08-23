@@ -158,18 +158,13 @@ func (rp *resticProvider) RunBackup(
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
 	}
 
-	resticConfigJSON, _ := tags["restic-config"]
-	var resticConfig *resourcepolicies.ResticConfig
-	if len(resticConfigJSON) > 0 {
-		err := json.Unmarshal([]byte(resticConfigJSON), resticConfig)
-		if err != nil {
-			log.Errorf("failed to unmarshal restic config: %s", err)
-		} else {
-			log.Infof("using restic config: %#v", resticConfig)
-			if len(resticConfig.Excludes) > 0 {
-				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
-				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.Excludes...)
-			}
+	// FIXME use pvb.Annotations instead ?
+	resticConfig, _ := ctx.Value("resticConfig").(*resourcepolicies.ResticConfig)
+	if resticConfig != nil {
+		log.Infof("using restic config: %#v", resticConfig)
+		if len(resticConfig.Excludes) > 0 {
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.Excludes...)
 		}
 	}
 
@@ -192,7 +187,6 @@ func (rp *resticProvider) RunBackup(
 	if err != nil {
 		return "", false, errors.WithStack(fmt.Errorf("error getting snapshot id with error: %v", err))
 	}
-	// FIXME
 	log.Infof("Run command=%s, stdout=%s, stderr=%s", backupCmd.String(), summary, stderrBuf)
 	return snapshotID, false, nil
 }
