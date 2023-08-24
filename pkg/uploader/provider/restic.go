@@ -182,6 +182,8 @@ func (rp *resticProvider) RunBackup(
 		}
 	}
 
+	log.Infof("Run command=%s", backupCmd.String())
+
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
 	if err != nil {
 		if strings.Contains(stderrBuf, "snapshot is empty") {
