@@ -43,6 +43,7 @@ type resourcePolicies struct {
 // ResticConfig is the restic configuration to apply when restic is used for volume backup.
 type ResticConfig struct {
 	Excludes []string `yaml:"excludes"`
+	Env      []string `yaml:"env"`
 }
 
 // resticPolicy defines the restic configuration to use for volume resources matching the given conditions.
