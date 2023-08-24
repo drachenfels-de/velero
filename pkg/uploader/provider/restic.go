@@ -174,6 +174,10 @@ func (rp *resticProvider) RunBackup(
 		if len(resticConfig.Env) > 0 {
 			backupCmd.Env = append(backupCmd.Env, resticConfig.Env...)
 		}
+
+		if len(resticConfig.ExtraFlags) > 0 {
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, resticConfig.ExtraFlags...)
+		}
 	}
 
 	log.Infof("Run command=%s", backupCmd.String())
