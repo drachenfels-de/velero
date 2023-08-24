@@ -138,6 +138,8 @@ Exclude specific resources from the backup.
 
 Wildcard excludes are ignored.
 
+For restic file excludes see [restic file excludes](#restic-file-excludes)
+
 ### --exclude-namespaces
 
 Namespaces to exclude.
@@ -324,7 +326,7 @@ Velero supported conditions and format listed below:
 
 ### Restic configuration
 
-**Exclude Files**
+#### Restic file excludes
 
 See also https://restic.readthedocs.io/en/latest/040_backup.html#excluding-files
 
