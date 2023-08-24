@@ -321,3 +321,20 @@ Velero supported conditions and format listed below:
 **Resource policies rules**
 - Velero already has lots of include or exclude filters. the resource policies are the final filters after others include or exclude filters in one backup processing workflow. So if use a defined similar filter like the opt-in approach to backup one pod volume but skip backup of the same pod volume in resource policies, as resource policies are the final filters that are applied, the volume will not be backed up.
 - If volume resource policies conflict with themselves the first matched policy will be respected when many policies are defined.
+
+### Restic configuration
+
+**Exclude Files**
+
+See also https://restic.readthedocs.io/en/latest/040_backup.html#excluding-files
+
+```
+version: v1
+resticPolicies:
+  - resticConfig:
+      excludes:
+        - /git/gitea-repositories/mirrors/**
+        - /indexers/**
+```
+
+NOTE: Currently only the first resticConfig is used.
