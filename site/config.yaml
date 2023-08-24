@@ -15,6 +15,7 @@ params:
   latest: v1.12
   versions:
     - main
+- dev
     - v1.12
     - v1.11
     - v1.10
