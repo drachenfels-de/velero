@@ -18,6 +18,7 @@ package podvolume
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sync"
 
@@ -284,6 +285,23 @@ func (b *backupper) BackupPodVolumes(backup *velerov1api.Backup, pod *corev1api.
 		}
 
 		volumeBackup := newPodVolumeBackup(backup, pod, volume, repo.Spec.ResticIdentifier, b.uploaderType, pvc)
+
+		// TODO pass volume to allow conditional reesticPolicy evaluation.
+		resticConfig, _ := resPolicies.GetResticConfig(nil)
+		if resticConfig != nil {
+			// Pass the restic config to the restic backupper using the PodVolumeBackup Annotations.
+			resticConfigJSON, err := json.Marshal(resticConfig)
+			if err != nil {
+				log.Errorf("failed to marshal resticConfig %#v: %s", resticConfig, err)
+				errs = append(errs, err)
+				continue
+			}
+			if volumeBackup.Annotations == nil {
+				volumeBackup.Annotations = make(map[string]string, 10)
+			}
+			volumeBackup.Annotations["resticConfig"] = string(resticConfigJSON)
+		}
+
 		if _, err = b.veleroClient.VeleroV1().PodVolumeBackups(volumeBackup.Namespace).Create(context.TODO(), volumeBackup, metav1.CreateOptions{}); err != nil {
 			errs = append(errs, err)
 			continue
