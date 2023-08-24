@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 
 	"github.com/vmware-tanzu/velero/internal/credentials"
+	"github.com/vmware-tanzu/velero/internal/resourcepolicies"
 	velerov1api "github.com/vmware-tanzu/velero/pkg/apis/velero/v1"
 	"github.com/vmware-tanzu/velero/pkg/restic"
 	"github.com/vmware-tanzu/velero/pkg/uploader"
@@ -153,6 +155,22 @@ func (rp *resticProvider) RunBackup(
 
 	if parentSnapshot != "" {
 		backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, fmt.Sprintf("--parent=%s", parentSnapshot))
+	}
+
+	resticConfig, _ := ctx.Value("resticConfig").(*resourcepolicies.ResticConfig)
+	if resticConfig != nil {
+		log.Debugf("using restic config: %#v", resticConfig)
+		// see also https://restic.readthedocs.io/en/latest/040_backup.html?highlight=--exclude#excluding-files
+		for _, exclude := range resticConfig.Excludes {
+			backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, "--exclude")
+			// FIXME resolve symlinks and relative paths to avoid escaping backupCmd.Dir.
+			if strings.HasPrefix(exclude, "/") {
+				// If the exclude is anchored to / we must replace it with working directory of the backup command.
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, filepath.Join(backupCmd.Dir, exclude))
+			} else {
+				backupCmd.ExtraFlags = append(backupCmd.ExtraFlags, exclude)
+			}
+		}
 	}
 
 	summary, stderrBuf, err := resticBackupFunc(backupCmd, log, updater)
