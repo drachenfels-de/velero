@@ -194,6 +194,7 @@ func (r *PodVolumeBackupReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				} else if err = res.Validate(); err != nil {
 					log.Errorf("resource policies %s/%s: %s", req.Namespace, resPolicyName, err)
 				} else {
+					log.Infof(">>> set resource policy %s/%s to upload provider", req.Namespace, resPolicyName)
 					prov.SetPolicy(res)
 				}
 			}
