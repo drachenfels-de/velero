@@ -25,32 +25,31 @@ restic_bin=${output_dir}/restic
 build_path=$(dirname "$PWD")
 
 if [[ -z "${BIN}" ]]; then
-    echo "BIN must be set"
-    exit 1
+	echo "BIN must be set"
+	exit 1
 fi
 
 if [[ "${BIN}" != "velero" ]]; then
-    echo "${BIN} does not need the restic binary"
-    exit 0
+	echo "${BIN} does not need the restic binary"
+	exit 0
 fi
 
 if [[ -z "${GOOS}" ]]; then
-    echo "GOOS must be set"
-    exit 1
+	echo "GOOS must be set"
+	exit 1
 fi
 if [[ -z "${GOARCH}" ]]; then
-    echo "GOARCH must be set"
-    exit 1
+	echo "GOARCH must be set"
+	exit 1
 fi
 if [[ -z "${RESTIC_VERSION}" ]]; then
-    echo "RESTIC_VERSION must be set"
-    exit 1
+	echo "RESTIC_VERSION must be set"
+	exit 1
 fi
 
 mkdir ${build_path}/restic
 git clone -b v${RESTIC_VERSION} https://github.com/restic/restic.git ${build_path}/restic
 pushd ${build_path}/restic
-git apply /go/src/github.com/vmware-tanzu/velero/hack/fix_restic_cve.txt
 go run build.go --goos "${GOOS}" --goarch "${GOARCH}" --goarm "${GOARM}" -o ${restic_bin}
 chmod +x ${restic_bin}
 popd
